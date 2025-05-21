@@ -8,11 +8,26 @@ sudo gem install oxidized-script oxidized-web
 
 sudo mkdir $WORKINGDIR
 
+echo "Enter your Oxidized username:"
+read -r USERNAME
+
+echo "Enter your Oxidized password:"
+read -rs PASSWORD
+echo
+
+echo "Enter your Oxidized enable password:"
+read -rs ENABLE_PASSWORD
+echo
+
+echo "Enter the FQDN or IP of this device:"
+read -rs FQDN
+echo
+
 sudo tee "$WORKINGDIR/config" > /dev/null <<EOF
 ---
 rest: 0.0.0.0:8888
-username: user-here
-password: password-here
+username: $USERNAME
+password: $PASSWORD
 model: ios
 resolve_dns: true
 interval: 3600
@@ -60,14 +75,14 @@ source:
 model_map:
   cisco: ios
 vars:
-  enable: password-here
+  enable: $ENABLE_PASSWORD
 EOF
 
 sudo tee "$WORKINGDIR/devices.db" > /dev/null <<EOF
-example-switch01:cisco:192.168.1.1
-example-switch02:cisco:192.168.1.2
-example-switch03:cisco:192.168.1.3
+router1:cisco:192.168.1.1
+router2:cisco:192.168.1.2
 EOF
+echo "Oxidized devices written to /etc/oxidized/devices.db"
 
 sudo git init $WORKINGDIR/backup.git
 cd $WORKINGDIR/backup.git
@@ -92,16 +107,43 @@ EOF
 
 sudo chown $USER:$USER -R /etc/oxidized
 
-#sudo systemctl start oxidized
-#sudo systemctl daemon-reload
-#sudo systemctl enable oxidized
 
-echo -e "\e[32mInstallation complete, do the following to match your setup:
- 1. Edit $WORKINGDIR/config to match the correct user/password, and enable password
- 2. Edit $WORKINGDIR/devices.db to match the correct devices
- 3. Use following commands to start, and enable the service, and reload the systemd daemon
-    sudo systemctl start oxidized
-    sudo systemctl daemon-reload
-    sudo systemctl enable oxidized
- 4. *Add SSL certificate with Apache or NGINX
-\e[0m"
+sudo systemctl daemon-reload
+sudo systemctl enable oxidized
+
+a2enmod proxy
+a2enmod proxy_http
+a2enmod ssl
+a2enmod rewrite
+
+rm /etc/apache2/sites-enabled/000-default.conf
+mkdir /etc/apache2/ssl
+
+cat > "/etc/apache2/sites-available/oxidized.conf" <<EOF
+<VirtualHost *:80>
+    ServerName $HOSTNAME
+    Redirect permanent / https://$FQDN/
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName $HOSTNAME
+
+    SSLEngine on
+    SSLCertificateFile /etc/apache2/ssl/oxidized.crt
+    SSLCertificateKeyFile /etc/apache2/ssl/oxidized.key
+
+    ProxyPreserveHost On
+    ProxyPass / http://127.0.0.1:8888/
+    ProxyPassReverse / http://127.0.0.1:8888/
+
+    ErrorLog ${APACHE_LOG_DIR}/oxidized-error.log
+    CustomLog ${APACHE_LOG_DIR}/oxidized-access.log combined
+</VirtualHost>
+EOF
+
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout /etc/apache2/ssl/oxidized.key \
+  -out /etc/apache2/ssl/oxidized.crt
+
+a2ensite oxidized.conf
+systemctl restart apache2
