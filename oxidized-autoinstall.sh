@@ -148,5 +148,4 @@ sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 sudo a2ensite oxidized.conf
 sudo systemctl restart apache2
 
-echo
-sudo systemctl start oxidized
+echo "Configure /etc/oxidized/devices.db, and proper SSL certificate"
