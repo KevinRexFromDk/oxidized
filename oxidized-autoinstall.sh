@@ -4,7 +4,7 @@ WORKINGDIR="/etc/oxidized"
 HOSTNAME=$(hostname)
 
 sudo add-apt-repository universe
-sudo apt-get install ruby ruby-dev libsqlite3-dev libssl-dev pkg-config cmake libssh2-1-dev libicu-dev zlib1g-dev g++ libyaml-dev
+sudo apt-get install ruby ruby-dev libsqlite3-dev libssl-dev pkg-config cmake libssh2-1-dev libicu-dev zlib1g-dev g++ libyaml-dev -y
 sudo gem install oxidized
 sudo gem install oxidized-script oxidized-web
 
@@ -21,7 +21,7 @@ echo "Enter your Oxidized enable password:"
 read -rs ENABLE_PASSWORD
 echo
 
-echo "Enter the FQDN or IP of this device:"
+echo "Enter the FQDN or IP of this device:"e
 read -rs FQDN
 echo
 
@@ -109,19 +109,20 @@ EOF
 
 sudo chown $USER:$USER -R /etc/oxidized
 
+sudo apt install apache2 -y
 
 sudo systemctl daemon-reload
 sudo systemctl enable oxidized
 
-a2enmod proxy
-a2enmod proxy_http
-a2enmod ssl
-a2enmod rewrite
+sudo a2enmod proxy
+sudo a2enmod proxy_http
+sudo a2enmod ssl
+sudo a2enmod rewrite
 
-rm /etc/apache2/sites-enabled/000-default.conf
-mkdir /etc/apache2/ssl
+sudo rm /etc/apache2/sites-enabled/000-default.conf
+sudo mkdir /etc/apache2/ssl
 
-cat > "/etc/apache2/sites-available/oxidized.conf" <<EOF
+sudo tee "/etc/apache2/sites-available/oxidized.conf" > /dev/null <<EOF
 <VirtualHost *:80>
     ServerName $HOSTNAME
     Redirect permanent / https://$FQDN/
@@ -140,10 +141,12 @@ cat > "/etc/apache2/sites-available/oxidized.conf" <<EOF
 </VirtualHost>
 EOF
 
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
   -keyout /etc/apache2/ssl/oxidized.key \
   -out /etc/apache2/ssl/oxidized.crt
 
-a2ensite oxidized.conf
-systemctl restart apache2
-systemctl start oxidized
+sudo a2ensite oxidized.conf
+sudo systemctl restart apache2
+
+echo
+sudo systemctl start oxidized
