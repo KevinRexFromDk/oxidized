@@ -97,7 +97,7 @@ sudo chown $USER:$USER -R /etc/oxidized
 #sudo systemctl enable oxidized
 
 echo -e "\e[32mInstallation complete, do the following to match your setup:
- 1. Edit $WORKiNGDIR/config to match the correct user/password, and enable password
+ 1. Edit $WORKINGDIR/config to match the correct user/password, and enable password
  2. Edit $WORKINGDIR/devices.db to match the correct devices
  3. Use following commands to start, and enable the service, and reload the systemd daemon
     sudo systemctl start oxidized
