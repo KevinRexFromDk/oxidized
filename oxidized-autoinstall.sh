@@ -1,5 +1,7 @@
 SERVICE_FILE="/etc/systemd/system/oxidized.service"
+CONFIG_PATH="/etc/oxidized/config"
 WORKINGDIR="/etc/oxidized"
+HOSTNAME=$(hostname)
 
 sudo add-apt-repository universe
 sudo apt-get install ruby ruby-dev libsqlite3-dev libssl-dev pkg-config cmake libssh2-1-dev libicu-dev zlib1g-dev g++ libyaml-dev
@@ -97,7 +99,7 @@ After=network.target
 [Service]
 Environment=OXIDIZED_HOME=$WORKINGDIR
 ExecStart=/usr/local/bin/oxidized
-User=administrator
+User=$USER
 WorkingDirectory=$WORKINGDIR
 Restart=always
 
@@ -135,9 +137,6 @@ cat > "/etc/apache2/sites-available/oxidized.conf" <<EOF
     ProxyPreserveHost On
     ProxyPass / http://127.0.0.1:8888/
     ProxyPassReverse / http://127.0.0.1:8888/
-
-    ErrorLog ${APACHE_LOG_DIR}/oxidized-error.log
-    CustomLog ${APACHE_LOG_DIR}/oxidized-access.log combined
 </VirtualHost>
 EOF
 
@@ -147,3 +146,4 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 
 a2ensite oxidized.conf
 systemctl restart apache2
+systemctl start oxidized
